@@ -293,4 +293,81 @@ export const tools = {
       content: [{ type: "text", text: asText({ ok: true, action: "PREFILL_FORM", form: input.form, values: input.values }) }],
     }),
   },
+
+  // ---- DATABASE TOOLS (Read-Only) ----
+  db_list_tables: {
+    description: "List all public tables in the database.",
+    schema: {},
+    handler: async () => {
+      const { listTables } = await import("./db.js");
+      const tables = await listTables();
+      return { content: [{ type: "text", text: asText(tables) }] };
+    },
+  },
+
+  db_get_table_schema: {
+    description: "Get the column schema for a specific table.",
+    schema: {
+      table_name: z.string().min(1).describe("Name of the table to inspect"),
+    },
+    handler: async (input: any) => {
+      const { getTableSchema } = await import("./db.js");
+      const schema = await getTableSchema(input.table_name);
+      return { content: [{ type: "text", text: asText(schema) }] };
+    },
+  },
+
+  db_run_read_only_query: {
+    description: "Run a customized SQL query. MUST be a SELECT statement. Mutations are blocked.",
+    schema: {
+      sql: z.string().min(1).describe("SQL query string"),
+    },
+    handler: async (input: any) => {
+      const { runReadOnlyQuery } = await import("./db.js");
+      try {
+        const rows = await runReadOnlyQuery(input.sql);
+        return { content: [{ type: "text", text: asText(rows) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Error: ${e.message}` }] };
+      }
+    },
+  },
+
+  // ---- STOREFRONT DEBUGGING TOOLS ----
+  storefront_check_payment_providers: {
+    description: "Check database for installed payment providers.",
+    schema: {},
+    handler: async () => {
+      const { runReadOnlyQuery } = await import("./db.js");
+      // This assumes a standard Medusa schema. Adjust if necessary.
+      const sql = `SELECT id, is_installed FROM payment_provider;`;
+      try {
+        const rows = await runReadOnlyQuery(sql);
+        return { content: [{ type: "text", text: asText({ message: "Payment Providers in DB:", data: rows }) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to check payment providers: ${e.message}` }] };
+      }
+    },
+  },
+
+  storefront_ping: {
+    description: "Check if the storefront URL is reachable.",
+    schema: {
+      path: z.string().optional().describe("Optional path to check, e.g. /products"),
+    },
+    handler: async (input: any) => {
+      const baseUrl = env.STOREFRONT_URL;
+      if (!baseUrl) {
+        return { isError: true, content: [{ type: "text", text: "STOREFRONT_URL is not configured in environment." }] };
+      }
+      const url = `${baseUrl}${input.path || ""}`;
+      try {
+        // Using global fetch or axios
+        const res = await fetch(url, { method: "HEAD" });
+        return { content: [{ type: "text", text: asText({ url, status: res.status, ok: res.ok }) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to ping ${url}: ${e.message}` }] };
+      }
+    }
+  }
 } as const;
