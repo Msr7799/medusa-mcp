@@ -569,6 +569,11 @@ app.post("/mcp", async (req: Request, res: Response) => {
   });
 });
 
+// Basic root route for verification
+app.get("/", (req, res) => {
+  res.send("Medusa MCP Server is running!");
+});
+
 // Only start the server if we are not in a Vercel/serverless environment
 // or if we are the main module (approximated here by checking VERCEL env or similar,
 // but common pattern is export app and only listen if not imported).
@@ -588,3 +593,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`[MCP] Listening on :${PORT} (POST /mcp)`);
   });
 }
+
+export default app;
