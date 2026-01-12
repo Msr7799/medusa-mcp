@@ -6,10 +6,9 @@ export type ConfirmPayload = {
   iat: number; // issued-at (unix seconds)
   exp: number; // expiry (unix seconds)
   req: {
-    method: "GET" | "POST" | "PUT" | "DELETE";
+    method: string;
     url: string;
     headers: Record<string, string>;
-    query?: Record<string, any>;
     body?: any;
   };
 };

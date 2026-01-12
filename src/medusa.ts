@@ -1,7 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
 import FormData from "form-data";
 import { env } from "./env.js";
-import { getContext } from "./context.js";
 
 export type MedusaAuth = {
   type: "basic" | "bearer";
@@ -9,29 +8,17 @@ export type MedusaAuth = {
 };
 
 export function getAuthHeaders(): Record<string, string> {
-  const ctx = getContext();
-
-  // 1) Per-request override (sent by the agent/client as headers to this MCP server)
-  const override = ctx?.medusaAuthOverride;
-  if (override) {
-    if ("authorizationHeader" in override) {
-      return { Authorization: override.authorizationHeader };
-    }
-    return {
-      Authorization: override.type === "bearer" ? `Bearer ${override.token}` : `Basic ${override.token}`,
-    };
-  }
-
-  // 2) Default server env auth
   const token = env.medusaAuthToken;
   if (!token) return {};
-  if (env.medusaAuthType === "bearer") return { Authorization: `Bearer ${token}` };
+  if (env.medusaAuthType === "bearer") {
+    return { Authorization: `Bearer ${token}` };
+  }
   // Medusa v2 docs: API token is sent via Authorization: Basic <token> (base64 optional)
   return { Authorization: `Basic ${token}` };
 }
 
 export async function medusaRequest<T = any>(
-  method: "GET" | "POST" | "PUT" | "DELETE",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   opts: {
     query?: Record<string, any>;
