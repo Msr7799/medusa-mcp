@@ -557,8 +557,8 @@ app.get("/health", (_req: Request, res: Response) => {
   res.json({ ok: true, service: "medusa-admin-mcp", time: new Date().toISOString() });
 });
 
-// MCP endpoint (Streamable HTTP). Convention: POST /mcp
-app.post("/mcp", async (req: Request, res: Response) => {
+// MCP endpoint (Streamable HTTP). Convention: POST /mcp for messages, GET /mcp for SSE
+app.all("/mcp", async (req: Request, res: Response) => {
   const { server, transport } = await createServer();
 
   await transport.handleRequest(req, res, req.body);
