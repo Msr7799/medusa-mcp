@@ -28,7 +28,9 @@ export const tools = {
           expand: input.expand,
         },
       });
-      return { content: [{ type: "text", text: asText(data) }] };
+      // Help the AI by explicitly stating the count
+      const summary = `Total Count: ${data.count}. Offset: ${data.offset}. Limit: ${data.limit}. Products returned: ${data.products?.length}`;
+      return { content: [{ type: "text", text: `${summary}\n\n${asText(data)}` }] };
     },
   },
 
@@ -87,6 +89,133 @@ export const tools = {
         query: { limit: input.limit, offset: input.offset },
       });
       return { content: [{ type: "text", text: asText(data) }] };
+    },
+  },
+
+  // ---- CATEGORIES & COLLECTIONS ----
+  admin_create_category: {
+    description: "Create a product category (/admin/product-categories).",
+    schema: {
+      name: z.string().min(1).describe("Category name"),
+      parent_category_id: z.string().optional().describe("Parent category ID"),
+      is_active: z.boolean().optional().default(true),
+      is_internal: z.boolean().optional().default(false),
+      rank: z.number().int().optional(),
+    },
+    handler: async (input: any) => {
+      const body = {
+        name: input.name,
+        parent_category_id: input.parent_category_id,
+        is_active: input.is_active,
+        is_internal: input.is_internal,
+        rank: input.rank,
+      };
+      const data = await medusaRequest("POST", "/admin/product-categories", { body });
+      return { content: [{ type: "text", text: asText(data) }] };
+    },
+  },
+
+  admin_add_product_to_category: {
+    description: "Add products to a category (/admin/product-categories/:id/products/batch).",
+    schema: {
+      category_id: z.string().min(1),
+      product_ids: z.array(z.string()).min(1).describe("Array of Product IDs"),
+    },
+    handler: async (input: any) => {
+      const body = {
+        product_ids: input.product_ids.map((id: string) => ({ id })),
+      };
+      const data = await medusaRequest(
+        "POST",
+        `/admin/product-categories/${input.category_id}/products/batch`,
+        { body }
+      );
+      return { content: [{ type: "text", text: asText(data) }] };
+    },
+  },
+
+  admin_create_collection: {
+    description: "Create a product collection (/admin/collections).",
+    schema: {
+      title: z.string().min(1).describe("Collection title"),
+      handle: z.string().optional(),
+    },
+    handler: async (input: any) => {
+      const body = {
+        title: input.title,
+        handle: input.handle,
+      };
+      const data = await medusaRequest("POST", "/admin/collections", { body });
+      return { content: [{ type: "text", text: asText(data) }] };
+    },
+  },
+
+  admin_add_product_to_collection: {
+    description: "Set the collection for a product (Updates the product).",
+    schema: {
+      product_id: z.string().min(1),
+      collection_id: z.string().min(1),
+    },
+    handler: async (input: any) => {
+      const body = {
+        collection_id: input.collection_id,
+      };
+      const data = await medusaRequest("POST", `/admin/products/${input.product_id}`, { body });
+      return { content: [{ type: "text", text: asText(data) }] };
+    },
+  },
+
+  // ---- REELS ----
+  admin_list_reels: {
+    description: "List reels from /admin/reels.",
+    schema: {},
+    handler: async () => {
+      try {
+        const data = await medusaRequest("GET", "/admin/reels");
+        return { content: [{ type: "text", text: asText(data) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to list reels: ${e.message}. Ensure the custom endpoint exists.` }] };
+      }
+    },
+  },
+
+  admin_create_reel: {
+    description: "Create a new reel entry (/admin/reels).",
+    schema: {
+      url: z.string().min(1).describe("Video URL"),
+      public_id: z.string().min(1).describe("Cloudinary Public ID"),
+      type: z.string().default("reel"),
+      duration_type: z.string().default("short"),
+      // expires_at is optional
+    },
+    handler: async (input: any) => {
+      const body = {
+        url: input.url,
+        public_id: input.public_id,
+        type: input.type,
+        duration_type: input.duration_type,
+      };
+      try {
+        const data = await medusaRequest("POST", "/admin/reels", { body });
+        return { content: [{ type: "text", text: asText(data) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to create reel: ${e.message}` }] };
+      }
+    },
+  },
+
+  admin_delete_reel: {
+    description: "Delete a reel (/admin/reels/:id).",
+    schema: {
+      id: z.string().min(1),
+    },
+    handler: async (input: any) => {
+      try {
+        const data = await medusaRequest("DELETE", `/admin/reels/${input.id}`);
+        return { content: [{ type: "text", text: asText(data) }] };
+      } catch (e: any) {
+        return { isError: true, content: [{ type: "text", text: `Failed to delete reel: ${e.message}` }] };
+      }
     },
   },
 
